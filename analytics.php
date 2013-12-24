@@ -19,7 +19,7 @@ $client = new Google_Client();
 $client->setApplicationName("WP Plugin");
 
 if (isset($_SESSION['token'])) {
- $client->setAccessToken($_SESSION['token']);
+	$client->setAccessToken($_SESSION['token']);
 }
 
 
@@ -36,30 +36,58 @@ $client->setUseObjects(true);
 $service = new Google_AnalyticsService($client);
 
 
- try {
-    // Success. Do something cool!
+try {
+		// nb pageviews for on url on particular day
 
 	$optParams = array(
 		// 'dimensions' => 'ga:source,ga:keyword',
 		// 'sort' => '-ga:visits,ga:source',
-		// 'filters' => 'ga:medium==organic',
+		'filters' => 'ga:pagePath==/post/como-excitar-um-homem-com-palavras/',
 		// 'max-results' => '25'
 	);
 
 	$results = $service->data_ga->get(
 		'ga:71980643',
-		'2013-12-01',
-		'2013-12-15',
-		'ga:visits',
+		'2013-12-23',
+		'2013-12-23',
+		'ga:pageviews',
 		$optParams
 	);
 
 	print_r($results);
 
 
-  } catch (apiServiceException $e) {
-    // Handle API service exceptions.
-    $error = $e->getMessage();
-  }
+} catch (apiServiceException $e) {
+	// Handle API service exceptions.
+	$error = $e->getMessage();
+}
+
+
+
+try {
+		// nb pageviews for top 500 pages on particular day
+
+	$optParams = array(
+		'dimensions' => 'ga:pagePath',
+		'sort' => '-ga:pageviews',
+		// 'filters' => 'ga:pagePath==/post/como-excitar-um-homem-com-palavras/',
+		'max-results' => '500'
+	);
+
+	$results = $service->data_ga->get(
+		'ga:71980643',
+		'2013-12-23',
+		'2013-12-23',
+		'ga:pageviews',
+		$optParams
+	);
+
+	print_r($results);
+
+
+} catch (apiServiceException $e) {
+	// Handle API service exceptions.
+	$error = $e->getMessage();
+}
 
 
