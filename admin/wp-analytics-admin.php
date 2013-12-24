@@ -14,7 +14,7 @@
  * administrative side of the WordPress site.
  *
  * If you're interested in introducing public-facing
- * functionality, then refer to `class-wp-analytics.php`
+ * functionality, then refer to `wp-analytics.php`
  *
  * @TODO: Rename this class to a proper name for your plugin.
  *
@@ -187,8 +187,8 @@ class WP_Analytics_Admin {
 		 *   For reference: http://codex.wordpress.org/Roles_and_Capabilities
 		 */
 		$this->plugin_screen_hook_suffix = add_options_page(
-			__( 'Page Title', $this->plugin_slug ),
-			__( 'Menu Text', $this->plugin_slug ),
+			__( 'WP-Analytics', $this->plugin_slug ),
+			__( 'WP-Analytics', $this->plugin_slug ),
 			'manage_options',
 			$this->plugin_slug,
 			array( $this, 'display_plugin_admin_page' )

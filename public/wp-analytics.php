@@ -14,7 +14,7 @@
  * public-facing side of the WordPress site.
  *
  * If you're interested in introducing administrative or dashboard
- * functionality, then refer to `class-wp-analytics-admin.php`
+ * functionality, then refer to `wp-analytics-admin.php`
  *
  * @TODO: Rename this class to a proper name for your plugin.
  *
@@ -46,7 +46,7 @@ class WP_Analytics {
 	 *
 	 * @var      string
 	 */
-	protected $plugin_slug = 'plugin-name';
+	protected $plugin_slug = 'wp-analytics';
 
 	/**
 	 * Instance of this class.

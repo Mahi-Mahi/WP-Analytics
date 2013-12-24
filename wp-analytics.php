@@ -31,7 +31,7 @@ if ( ! defined( 'WPINC' ) ) {
 /*
  * @TODO:
  *
- * - replace `class-wp-analytics.php` with the name of the plugin's class file
+ * - replace `wp-analytics.php` with the name of the plugin's class file
  *
  */
 require_once( plugin_dir_path( __FILE__ ) . 'public/wp-analytics.php' );
@@ -43,7 +43,7 @@ require_once( plugin_dir_path( __FILE__ ) . 'public/wp-analytics.php' );
  * @TODO:
  *
  * - replace WP_Analytics with the name of the class defined in
- *   `class-wp-analytics.php`
+ *   `wp-analytics.php`
  */
 register_activation_hook( __FILE__, array( 'WP_Analytics', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'WP_Analytics', 'deactivate' ) );
@@ -52,7 +52,7 @@ register_deactivation_hook( __FILE__, array( 'WP_Analytics', 'deactivate' ) );
  * @TODO:
  *
  * - replace WP_Analytics with the name of the class defined in
- *   `class-wp-analytics.php`
+ *   `wp-analytics.php`
  */
 add_action( 'plugins_loaded', array( 'WP_Analytics', 'get_instance' ) );
 
@@ -65,7 +65,7 @@ add_action( 'plugins_loaded', array( 'WP_Analytics', 'get_instance' ) );
  *
  * - replace `class-plugin-admin.php` with the name of the plugin's admin file
  * - replace WP_Analytics_Admin with the name of the class defined in
- *   `class-wp-analytics-admin.php`
+ *   `wp-analytics-admin.php`
  *
  * If you want to include Ajax within the dashboard, change the following
  * conditional to:
@@ -78,7 +78,7 @@ add_action( 'plugins_loaded', array( 'WP_Analytics', 'get_instance' ) );
  */
 if ( is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
 
-	require_once( plugin_dir_path( __FILE__ ) . 'admin/class-wp-analytics-admin.php' );
+	require_once( plugin_dir_path( __FILE__ ) . 'admin/wp-analytics-admin.php' );
 	add_action( 'plugins_loaded', array( 'WP_Analytics_Admin', 'get_instance' ) );
 
 }
