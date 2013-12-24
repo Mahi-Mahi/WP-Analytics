@@ -60,7 +60,7 @@ class AuthTest extends BaseTest {
     $binary_data = "\x00\x01\x02\x66\x6f\x6f";
     $signature = $this->signer->sign($binary_data);
     $this->assertTrue($this->verifier->verify($binary_data, $signature));
-    
+
     $empty_string = "";
     $signature = $this->signer->sign($empty_string);
     $this->assertTrue($this->verifier->verify($empty_string, $signature));
@@ -199,7 +199,7 @@ class AuthTest extends BaseTest {
   public function testNoAuth() {
     /** @var $noAuth Google_AuthNone */
     $noAuth = new Google_AuthNone();
-    $req = new Google_HttpRequest("http://example.com");
+    $req = new Google_HttpRequest("http://mahi-mahi.fr/");
 
     $resp = $noAuth->sign($req);
     $noAuth->authenticate(null);
@@ -209,7 +209,7 @@ class AuthTest extends BaseTest {
     $noAuth->refreshToken(null);
     $noAuth->revokeToken();
     $noAuth->setDeveloperKey(null);
-    $this->assertTrue(strpos($resp->getUrl(), "http://example.com?key=") === 0);
+    $this->assertTrue(strpos($resp->getUrl(), "http://mahi-mahi.fr/?key=") === 0);
   }
 
   public function testAssertionCredentials() {

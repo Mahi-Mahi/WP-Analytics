@@ -2,11 +2,11 @@
 /**
  * Plugin Name.
  *
- * @package   Plugin_Name
- * @author    Your Name <email@example.com>
+ * @package   WP_Analytics
+ * @author    olivM <olivier.mourlevat@mahi-mahi.fr>
  * @license   GPL-2.0+
- * @link      http://example.com
- * @copyright 2013 Your Name or Company Name
+ * @link      http://mahi-mahi.fr/
+ * @copyright 2013 Mahi-Mahi
  */
 
 /**
@@ -14,14 +14,14 @@
  * public-facing side of the WordPress site.
  *
  * If you're interested in introducing administrative or dashboard
- * functionality, then refer to `class-plugin-name-admin.php`
+ * functionality, then refer to `class-wp-analytics-admin.php`
  *
  * @TODO: Rename this class to a proper name for your plugin.
  *
- * @package Plugin_Name
- * @author  Your Name <email@example.com>
+ * @package WP_Analytics
+ * @author  olivM <olivier.mourlevat@mahi-mahi.fr>
  */
-class Plugin_Name {
+class WP_Analytics {
 
 	/**
 	 * Plugin version, used for cache-busting of style and script file references.

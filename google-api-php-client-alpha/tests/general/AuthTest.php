@@ -210,7 +210,7 @@ class AuthTest extends BaseTest {
     $oldAuth = $this->getClient()->getAuth();
     $this->getClient()->setAuth($noAuth);
     $this->getClient()->setDeveloperKey(null);
-    $req = new Google_Http_Request($this->getClient(), "http://example.com");
+    $req = new Google_Http_Request($this->getClient(), "http://mahi-mahi.fr/");
 
     $resp = $noAuth->sign($req);
     try {
@@ -224,7 +224,7 @@ class AuthTest extends BaseTest {
     $noAuth->getAccessToken();
     $noAuth->refreshToken(null);
     $noAuth->revokeToken();
-    $this->assertEquals("http://example.com", $resp->getUrl());
+    $this->assertEquals("http://mahi-mahi.fr/", $resp->getUrl());
     $this->getClient()->setAuth($oldAuth);
   }
 

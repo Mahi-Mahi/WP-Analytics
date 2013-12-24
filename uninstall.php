@@ -2,11 +2,11 @@
 /**
  * Fired when the plugin is uninstalled.
  *
- * @package   Plugin_Name
- * @author    Your Name <email@example.com>
+ * @package   WP_Analytics
+ * @author    olivM <olivier.mourlevat@mahi-mahi.fr>
  * @license   GPL-2.0+
- * @link      http://example.com
- * @copyright 2013 Your Name or Company Name
+ * @link      http://mahi-mahi.fr/
+ * @copyright 2013 Mahi-Mahi
  */
 
 // If uninstall not called from WordPress, then exit
