@@ -36,6 +36,13 @@ if ( ! defined( 'WPINC' ) ) {
  */
 require_once( plugin_dir_path( __FILE__ ) . 'public/wp-analytics.php' );
 
+define('WP_Analytics_DIR', constant('WP_PLUGIN_DIR').'/'.basename(dirname(__FILE__)));
+define('WP_Analytics_PATH', '/'.str_replace(constant('ABSPATH'), '', constant('WP_Analytics_DIR')));
+define('WP_Analytics_URL', constant('WP_PLUGIN_URL').'/'.basename(dirname(__FILE__)));
+
+define('WP_Analytics_ConfigDir', constant('WP_CONTENT_DIR').'/'.basename(dirname(__FILE__)));
+
+
 /*
  * Register hooks that are fired when the plugin is activated or deactivated.
  * When the plugin is deleted, the uninstall.php file is loaded.

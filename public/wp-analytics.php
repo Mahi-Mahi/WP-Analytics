@@ -57,6 +57,10 @@ class WP_Analytics {
 	 */
 	protected static $instance = null;
 
+	protected static $service = null;
+
+	protected $debug = true;
+
 	/**
 	 * Initialize the plugin by setting localization and loading public scripts
 	 * and styles.
@@ -72,8 +76,8 @@ class WP_Analytics {
 		add_action( 'wpmu_new_blog', array( $this, 'activate_new_site' ) );
 
 		// Load public-facing style sheet and JavaScript.
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		// add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
+		// add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
 		/* Define custom functionality.
 		 * Refer To http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
@@ -81,6 +85,133 @@ class WP_Analytics {
 		add_action( '@TODO', array( $this, 'action_method_name' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
+	}
+
+	function wp_head() {
+
+		if ( is_single() ):
+			$this->update_stats($_SERVER['REQUEST_URI'], get_queried_object());
+		endif;
+
+	}
+
+	// Force update stats on a particular url
+	// WARNING : dont spam this call !!!!
+
+	function update_stats($url = null, $queried_object = null) {
+		$this->debug("update_stats($url);");
+		$this->debug(get_queried_object());
+
+		if ( $this->get_service() ):
+
+			// @TODO
+
+			switch($this->period):
+				default:
+				case 'day':
+					$period_start = date('Y-m-d');
+					$period_end = date('Y-m-d');
+				break;
+			endswitch;
+
+			try {
+
+				// nb pageviews for on url on particular period
+				$results = $this->service->data_ga->get(
+					$this->ga_account,
+					$period_start,
+					$period_end,
+					'ga:pageviews',
+					array(
+						'filters' => 'ga:pagePath=='.$url
+					)
+				);
+
+				$this->debug($results);
+
+			} catch (apiServiceException $e) {
+				// Handle API service exceptions.
+				$error = $e->getMessage();
+				$this->log($error);
+			}
+
+
+		endif;
+
+	}
+
+	function get_service() {
+
+		if ( $this->service === null ):
+
+			$this->debug(constant('WP_Analytics_ConfigDir'));
+
+			// Load Config file
+
+			$config_file = constant('WP_Analytics_ConfigDir').'/config.php';
+
+			if ( ! is_file($config_file) ):
+				$this->log("configuration not found : ".constant('WP_Analytics_ConfigDir').'/config.php');
+				return $this->service = false;
+			endif;
+
+			require_once($config_file);
+			foreach($wp_analytics_config as $k => $v)
+				$this->{$k} = $v;
+
+			// Check Key File
+
+			$key_file = constant('WP_Analytics_ConfigDir').'/privatekey.p12';
+
+			if ( ! is_file($key_file) ):
+				$this->log("key file not found : ".$key_file);
+				return $this->service = false;
+			endif;
+
+			require_once(constant('WP_Analytics_DIR').'/includes/google-api-php-client/src/Google_Client.php');
+			require_once(constant('WP_Analytics_DIR').'/includes/google-api-php-client/src/contrib/Google_AnalyticsService.php');
+
+			session_start();
+
+			$client = new Google_Client();
+
+			// $client->setApplicationName("WP Plugin");
+			$client->setApplicationName("WP Analytics");
+
+			if (isset($_SESSION['token'])) {
+				$client->setAccessToken($_SESSION['token']);
+			}
+
+			$key = file_get_contents($key_file);
+			$client->setClientId($this->client_id);
+			$client->setAssertionCredentials(new Google_AssertionCredentials(
+				$this->service_account_name,
+				array('https://www.googleapis.com/auth/analytics'),
+				$key)
+			);
+			$client->setScopes(array('https://www.googleapis.com/auth/analytics.readonly'));
+			$client->setUseObjects(true);
+
+			$this->service = new Google_AnalyticsService($client);
+
+		endif;
+
+		return true;
+
+	}
+
+	function debug($s) {
+		if ( $this->debug )
+			$this->log($s);
+	}
+
+	function log($s) {
+		if ( is_string($s) ):
+			error_log("[WP-Analytics] ".$s);
+		else:
+			error_log("[WP-Analytics]");
+			error_log(print_r($s, true));
+		endif;
 	}
 
 	/**
@@ -235,6 +366,20 @@ class WP_Analytics {
 	 */
 	private static function single_activate() {
 		// @TODO: Define activation functionality here
+
+
+		/*
+		CREATE TABLE `emn_analytics` (
+			`url` varchar(255) NOT NULL,
+			`content_kind` int(11) NOT NULL,
+			`content_id` int(11) NOT NULL,
+			`content_type` int(11) NOT NULL,
+			`period` varchar(32) NOT NULL,
+			`count_value` int(11) NOT NULL DEFAULT '0',
+			PRIMARY KEY (`url`,`period`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+		*/
+
 	}
 
 	/**
