@@ -89,3 +89,5 @@ if ( is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
 	add_action( 'plugins_loaded', array( 'WP_Analytics_Admin', 'get_instance' ) );
 
 }
+
+

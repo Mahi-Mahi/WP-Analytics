@@ -89,6 +89,8 @@ class WP_Analytics_Admin {
 		add_action( '@TODO', array( $this, 'action_method_name' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
+		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
+
 	}
 
 	/**
@@ -154,11 +156,16 @@ class WP_Analytics_Admin {
 	 */
 	public function enqueue_admin_scripts() {
 
+		$screen = get_current_screen();
+
+		if ( $screen->base == 'post' ) {
+			wp_enqueue_script( $this->plugin_slug . '-admin-meta-box-script', plugins_url( 'assets/js/meta-box.js', __FILE__ ), array( 'jquery', 'jquery-ui-tabs' ), WP_Analytics::VERSION );
+		}
+
 		if ( ! isset( $this->plugin_screen_hook_suffix ) ) {
 			return;
 		}
 
-		$screen = get_current_screen();
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
 			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), WP_Analytics::VERSION );
 		}
@@ -247,4 +254,67 @@ class WP_Analytics_Admin {
 		// @TODO: Define your filter hook callback here
 	}
 
+
+	public function add_meta_box( $post_type ) {
+		$post_types = array('post', 'page');     //limit meta box to certain post types
+		if ( in_array( $post_type, $post_types )) {
+
+			add_meta_box(
+				'wp_analytics_meta_box'
+				,__( 'WP Analytics', $this->plugin_slug )
+				,array( $this, 'render_meta_box_content' )
+				,$post_type
+				,'advanced'
+				,'high'
+			);
+
+		}
+	}
+
+	public function render_meta_box_content( $post ) {
+
+		include(constant('WP_Analytics_DIR').'/admin/views/meta_box.php');
+
+	}
+
+
+
+	private function debug($s) {
+		if ( $this->debug )
+			$this->log($s);
+	}
+
+	private function log($s) {
+		if ( is_string($s) ):
+			$output = "[WP-Analytics] ".$s;
+		else:
+			$output = "[WP-Analytics] ".PHP_EOL;
+			$output .= print_r($s, true);
+		endif;
+
+		if ( defined('WP_CLI') ):
+			print $output."\n";
+		else:
+			error_log($output);
+		endif;
+
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

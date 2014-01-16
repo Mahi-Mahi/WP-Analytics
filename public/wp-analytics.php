@@ -61,6 +61,8 @@ class WP_Analytics {
 
 	protected $debug = true;
 
+	protected $table_name;
+
 	/**
 	 * Initialize the plugin by setting localization and loading public scripts
 	 * and styles.
@@ -85,6 +87,12 @@ class WP_Analytics {
 		add_action( '@TODO', array( $this, 'action_method_name' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
+		if ( defined('WP_CLI') && WP_CLI )
+			require_once(constant('WP_Analytics_DIR').'/public/wp-cli.php');
+
+		global $wpdb;
+		$this->table_name = $wpdb->prefix.'analytics';
+
 	}
 
 	function wp_head() {
@@ -95,10 +103,74 @@ class WP_Analytics {
 
 	}
 
+	function fetch_top($period = null) {
+		global $wpdb;
+
+		$this->log("WP_Analytics::fetch_top");
+
+		$timeout = is_local() ? 5 : 500;
+
+		if ( get_option('wp_analytics_fetch_top_'.$period) + $timeout > time() )
+			return;
+
+		update_option('wp_analytics_fetch_top_'.$period, time());
+
+		switch($period):
+			default:
+			case 'day':
+				$period_start = date('Y-m-d');
+				$period_end = date('Y-m-d');
+				$period_string = date('Ymd');
+			break;
+			case 'hour':
+				$period_start = date('Y-m-d h:0:0');
+				$period_end = date('Y-m-d h:59:59');
+				$period_string = date('YmdH');
+			break;
+		endswitch;
+
+		if ( $this->get_service() ):
+
+			try {
+				// nb pageviews for top 500 pages on particular period
+
+				$results = $this->service->data_ga->get(
+					$this->ga_account,
+					$period_start,
+					$period_end,
+					'ga:pageviews',
+					array(
+						'dimensions'	=> 'ga:pagePath',
+						'sort' 			=> '-ga:pageviews',
+						'max-results'	=> is_local() ? 5 : 500
+					)
+				);
+
+				$this->debug($results);
+
+				foreach($results->rows as $row):
+					$wpdb->replace($this->table_name, array(
+						'url' => $row[0],
+						'period' => $period_string,
+						'count_value' => $row[1]
+					));
+				endforeach;
+
+			} catch (apiServiceException $e) {
+				// Handle API service exceptions.
+				$error = $e->getMessage();
+				$this->log($error);
+			}
+		endif;
+
+
+	}
+
 	// Force update stats on a particular url
+	// also update content_kind, content_type and content_id
 	// WARNING : dont spam this call !!!!
 
-	function update_stats($url = null, $queried_object = null) {
+	private function update_stats($url = null, $queried_object = null) {
 		$this->debug("update_stats($url);");
 		$this->debug(get_queried_object());
 
@@ -140,7 +212,7 @@ class WP_Analytics {
 
 	}
 
-	function get_service() {
+	private function get_service() {
 
 		if ( $this->service === null ):
 
@@ -171,7 +243,7 @@ class WP_Analytics {
 			require_once(constant('WP_Analytics_DIR').'/includes/google-api-php-client/src/Google_Client.php');
 			require_once(constant('WP_Analytics_DIR').'/includes/google-api-php-client/src/contrib/Google_AnalyticsService.php');
 
-			session_start();
+			// session_start();
 
 			$client = new Google_Client();
 
@@ -200,18 +272,25 @@ class WP_Analytics {
 
 	}
 
-	function debug($s) {
+	private function debug($s) {
 		if ( $this->debug )
 			$this->log($s);
 	}
 
-	function log($s) {
+	private function log($s) {
 		if ( is_string($s) ):
-			error_log("[WP-Analytics] ".$s);
+			$output = "[WP-Analytics] ".$s;
 		else:
-			error_log("[WP-Analytics]");
-			error_log(print_r($s, true));
+			$output = "[WP-Analytics] ".PHP_EOL;
+			$output .= print_r($s, true);
 		endif;
+
+		if ( defined('WP_CLI') ):
+			print $output."\n";
+		else:
+			error_log($output);
+		endif;
+
 	}
 
 	/**
