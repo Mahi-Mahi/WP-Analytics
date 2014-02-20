@@ -91,6 +91,8 @@ class WP_Analytics_Admin {
 
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 
+		add_action( 'admin_footer', array( $this, 'admin_footer_set_missing_ids' ) );
+
 	}
 
 	/**
@@ -169,6 +171,8 @@ class WP_Analytics_Admin {
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
 			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), WP_Analytics::VERSION );
 		}
+
+		wp_enqueue_script( 'google-jsapi', 'https://www.google.com/jsapi');
 
 	}
 

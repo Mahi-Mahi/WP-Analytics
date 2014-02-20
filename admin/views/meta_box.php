@@ -1,18 +1,48 @@
 <div class="metabox-holder">
-	<div class="meta-box-sortables">
+	<div class="">
 
-		<h2 class="nav-tab-wrapper" id="wp-analytics-tabs">
-			<a class="nav-tab" id="default-tab" href="#top#default"><?php _e( 'General', $this->plugin_name ) ?></a>
-			<a class="nav-tab" id="other-tab" href="#top#other"><?php _e( 'Home', $this->plugin_name ) ?></a>
-		</h2>
+		<p>
+			total views :
+			<?php
+			print wp_analytics_get($_GET['post']);
+			?>
+		</p>
 
-		<div class="tabwrapper>">
-			<div id="default" class="wp_analytics_tab">
-				DEFAULT TAB
-			</div>
-			<div id="other" class="wp_analytics_tab">
-				OTHER TAB
-			</div>
-		</div>
+		<p>
+			<?php
+			$values = wp_analytics_gets($_GET['post']);
+			xmpr($values);
+			$json_values = array(array('Date', 'PageViews'));
+			foreach($values as $row):
+				$json_values[] = array($row->period, $row->count_value);
+			endforeach;
+			?>
+
+			<div id="wp_analytics_chart_div"></div>
+
+			<script type="text/javascript">
+				google.load("visualization", "1", {packages:["corechart"]});
+				google.setOnLoadCallback(drawChart);
+
+				function drawChart() {
+					/*
+					[
+						['Date', 'PageViews'],
+						['2004',  1000],
+						['2005',  1170],
+						['2006',  660],
+						['2007',  1030]
+					]
+					*/
+					var data = google.visualization.arrayToDataTable(<?php print json_encode($json_values));
+
+					var chart = new google.visualization.LineChart(document.getElementById('wp_analytics_chart_div'));
+					chart.draw(data, {
+						title: ''
+					});
+				}
+			</script>
+		</p>
+
 	</div>
 </div>

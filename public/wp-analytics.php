@@ -63,6 +63,32 @@ class WP_Analytics {
 
 	protected $table_name;
 
+	protected $defined_periods =  array(
+											'day' => array(
+															'pattern' => '^[0-9]{8}$',
+															'delay' => "-1 MONTH",
+															'current_period' => 'Ymd',
+															'adapted_period' => '^([\d]{4})([\d]{2})([\d]{2})$',
+															'adapted_replace' => '$1-$2-$3 00:00:00',
+															'displayed_period' => '%A %d %B %Y'
+														),
+											'month' => array(
+															'pattern' => '^[0-9]{6}$',
+															'delay' => "-1 YEAR",
+															'current_period' => 'Ym',
+															'adapted_period' => '^([\d]{4})([\d]{2})$',
+															'adapted_replace' => '$1-$2-01 00:00:00',
+															'displayed_period' => '%B %Y'
+														),
+											'year' => array(
+															'pattern' => '^[0-9]{4}$',
+															'current_period' => 'Y',
+															'adapted_period' => '^([\d]{4})$',
+															'adapted_replace' => '$1-01-01 00:00:00',
+															'displayed_period' => '%Y'
+														)
+										);
+
 	/**
 	 * Initialize the plugin by setting localization and loading public scripts
 	 * and styles.
@@ -87,8 +113,12 @@ class WP_Analytics {
 		add_action( '@TODO', array( $this, 'action_method_name' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
+		add_filter( '', array( $this, 'filter_method_name' ) );
+
 		if ( defined('WP_CLI') && WP_CLI )
 			require_once(constant('WP_Analytics_DIR').'/public/wp-cli.php');
+
+		require_once(constant('WP_Analytics_DIR').'/public/includes/functions.php');
 
 		global $wpdb;
 		$this->table_name = $wpdb->prefix.'analytics';
@@ -103,31 +133,61 @@ class WP_Analytics {
 
 	}
 
-	function fetch_top($period = null) {
+
+	protected function cleanup(){
 		global $wpdb;
 
-		$this->log("WP_Analytics::fetch_top");
+		foreach($this->defined_periods as $period):
 
-		$timeout = is_local() ? 5 : 500;
+			if ( isset($period['delay']) ):
 
-		if ( get_option('wp_analytics_fetch_top_'.$period) + $timeout > time() )
-			return;
+				$sql = "DELETE FROM ".$this->table_name." WHERE `period` RLIKE '".$period['pattern']."' AND `period` < '".date('Ym', strtotime($period['delay']))."' ";
 
-		update_option('wp_analytics_fetch_top_'.$period, time());
+				$wpdb->query($sql);
+
+			endif;
+
+		endforeach;
+
+		$sql = "DELETE FROM ".$this->table_name." WHERE `period` RLIKE '^[0-9]{8}\-[0-9\.]+$' AND `period` NOT LIKE '".date('Ymd')."-%' ";
+
+		$wpdb->query($sql);
+	}
+
+	function fetch_top($period = '', $date = null) {
+		global $wpdb;
+
+		if ( ! $date )
+			$date = time();
+
+		$this->log("WP_Analytics::fetch_top($period, $time");
 
 		switch($period):
 			default:
+			case '':
 			case 'day':
-				$period_start = date('Y-m-d');
-				$period_end = date('Y-m-d');
-				$period_string = date('Ymd');
+				$period_start = date('Y-m-d', $date);
+				$period_end = date('Y-m-d', $date);
+				$period_string = date('Ymd', $date);
 			break;
-			case 'hour':
-				$period_start = date('Y-m-d h:0:0');
-				$period_end = date('Y-m-d h:59:59');
-				$period_string = date('YmdH');
+			case 'month':
+				$period_start = date('Y-m-01', $date);
+				$period_end = date('Y-m-t', $date);
+				$period_string = date('Ym', $date);
+			break;
+			case 'year':
+				$period_start = date('Y-01-01', $date);
+				$period_end = date('Y-12-t', $date);
+				$period_string = date('Y', $date);
 			break;
 		endswitch;
+
+		$timeout = is_local() ? 5 : 3600;
+
+		if ( get_option('wp_analytics_fetch_top_'.$period_string) + $timeout > time() )
+			return;
+
+		update_option('wp_analytics_fetch_top_'.$period, time());
 
 		if ( $this->get_service() ):
 
@@ -142,19 +202,21 @@ class WP_Analytics {
 					array(
 						'dimensions'	=> 'ga:pagePath',
 						'sort' 			=> '-ga:pageviews',
-						'max-results'	=> is_local() ? 5 : 500
+						'max-results'	=> 500
 					)
 				);
 
 				$this->debug($results);
 
-				foreach($results->rows as $row):
-					$wpdb->replace($this->table_name, array(
-						'url' => $row[0],
-						'period' => $period_string,
-						'count_value' => $row[1]
-					));
-				endforeach;
+				if ( is_array($results->rows) ):
+					foreach($results->rows as $row):
+						$wpdb->replace($this->table_name, array(
+							'url' => $row[0],
+							'period' => $period_string,
+							'count_value' => $row[1]
+						));
+					endforeach;
+				endif;
 
 			} catch (apiServiceException $e) {
 				// Handle API service exceptions.
@@ -163,6 +225,7 @@ class WP_Analytics {
 			}
 		endif;
 
+		$this->cleanup();
 
 	}
 
@@ -210,6 +273,11 @@ class WP_Analytics {
 
 		endif;
 
+	}
+
+	private function set_ids($url, $content_id, $content_type = 'post', $content_kind = 'post') {
+		global $wpdb;
+		$wpdb->query("UPDATE {$this->table_name} SET content_id = {$content_id}, content_type = '{$content_type}', content_kind = '{$content_kind}' WHERE url = '{$url}' ");
 	}
 
 	private function get_service() {
@@ -269,6 +337,128 @@ class WP_Analytics {
 		endif;
 
 		return true;
+
+	}
+
+	// GET
+
+	public function get($period, $post_id, $content_kind = 'post', $content_type = 'post'){
+		global $wpdb;
+
+		$sql = "SELECT `count_value` FROM {$this->table_name} WHERE `content_id` = {$post_id} AND `period` = '{$period}' ";
+
+		$val = $wpdb->get_var($sql);
+
+		return $val;
+	}
+
+	public function gets($period, $post_id, $content_kind = 'post', $content_type = 'post'){
+		global $wpdb;
+
+		$period = $this->get_period($period);
+		logr($period);
+
+		$sql = "SELECT `period`, `count_value` FROM {$this->table_name} WHERE `content_id` = {$post_id} AND `period` RLIKE '{$period}' ";
+
+		$values = $wpdb->get_results($sql);
+
+		return $values;
+
+	}
+
+	private function get_period($period) {
+		return $this->defined_periods[$period];
+	}
+
+
+	// QUERY Filters
+
+	public function posts_join($join, $wp_query){
+		global $wpdb;
+
+		if(isset($wp_query->query_vars['orderby']) && ($wp_query->query_vars['orderby']=='analytics')):
+
+			$join .= " LEFT JOIN ".$this->table_name." ON {$wpdb->posts}.ID = ".$this->table_name.".content_id ";
+
+		endif;
+
+		return $join;
+	}
+
+
+	public function posts_where($where, $wp_query) {
+		global $wpdb;
+
+		if(isset($wp_query->query_vars['orderby']) && ($wp_query->query_vars['orderby']=='wpcount')):
+
+			if ( isset($wp_query->query_vars['analytics_period']) ):
+				$where .= " AND ".$this->table_name.".period = '".$wp_query->query_vars['analytics_period']."'";
+			else:
+				$where .= " AND ".$this->table_name.".period = ''";
+			endif;
+
+			$where .= " AND ".$this->table_name.".content_type = 'post' ";
+			$where .= " AND ".$this->table_name.".content_kind = {$wpdb->posts}.post_type ";
+
+		endif;
+
+		return $where;
+	}
+
+	public function posts_orderby($orderby, $wp_query){
+
+		if(isset($wp_query->query_vars['orderby']) && ($wp_query->query_vars['orderby']=='analytics')):
+
+			$orderby = " ".$this->table_name.".count_value ".$wp_query->query_vars['order'];
+
+		endif;
+
+		return $orderby;
+	}
+
+	public function posts_groupby($groupby, $wp_query) {
+		global $wpdb;
+
+		if ( $wp_query->query_vars['post_type'] == $this->content_type && isset($wp_query->query_vars['wpcount_type']) && ($wp_query->query_vars['wpcount_type']==$this->count_type)):
+				//$groupby = " {$wpdb->posts}.ID ";
+		endif;
+
+		return $groupby;
+	}
+
+	public function posts_fields($fields, $wp_query) {
+		global $wpdb;
+
+		if ( $wp_query->query_vars['post_type'] == $this->content_type && isset($wp_query->query_vars['wpcount_type']) && ($wp_query->query_vars['wpcount_type']==$this->count_type)):
+
+			$alias = $this->generate_alias($wp_query->query_vars, 'post');
+
+			if($wp_query->query_vars['wpcount_cheat'])
+				$fields = " {$wpdb->posts}.*, (".$alias.".count_value + ".$alias.".cheat) as `count_value` ";
+			else
+				$fields = " {$wpdb->posts}.*, (".$alias.".count_value) as `count_value` ";
+
+		endif;
+
+		return $fields;
+	}
+
+	public function posts_distinct($distinct, $wp_query) {
+
+		if ( isset($wp_query->query_vars['wpcount_type']) && ($wp_query->query_vars['wpcount_type']==$this->count_type)):
+				//$distinct = " DISTINCT ";
+		endif;
+
+		return $distinct;
+	}
+
+
+
+	public function before_delete_post($post_id){
+		global $wpdb;
+
+		$post = get_post($post_id);
+		$wpdb->query('DELETE FROM '.$this->table_name.' WHERE content_id='.$post_id.' AND content_kind = "'.$post->post_type.'" ');
 
 	}
 
@@ -445,19 +635,22 @@ class WP_Analytics {
 	 */
 	private static function single_activate() {
 		// @TODO: Define activation functionality here
+		global $wpdb;
 
-
-		/*
-		CREATE TABLE `emn_analytics` (
+		$sql = "
+		CREATE TABLE `{$this->table_name}` (
 			`url` varchar(255) NOT NULL,
-			`content_kind` int(11) NOT NULL,
-			`content_id` int(11) NOT NULL,
-			`content_type` int(11) NOT NULL,
+			`content_kind` int(11) DEFAULT NULL,
+			`content_id` int(11) DEFAULT NULL,
+			`content_type` int(11) DEFAULT NULL,
 			`period` varchar(32) NOT NULL,
 			`count_value` int(11) NOT NULL DEFAULT '0',
 			PRIMARY KEY (`url`,`period`)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-		*/
+		";
+
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		dbDelta( $sql );
 
 	}
 
