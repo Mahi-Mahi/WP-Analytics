@@ -61,7 +61,7 @@ class WP_Analytics {
 
 	protected $debug = true;
 
-	protected $table_name;
+	public $table_name;
 
 	protected $defined_periods =  array(
 											'day' => array(
@@ -113,7 +113,9 @@ class WP_Analytics {
 		add_action( '@TODO', array( $this, 'action_method_name' ) );
 		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
-		add_filter( '', array( $this, 'filter_method_name' ) );
+		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
+
+		add_action( 'wp_head', array( $this, 'set_missing_url_ids' ), 1 );
 
 		if ( defined('WP_CLI') && WP_CLI )
 			require_once(constant('WP_Analytics_DIR').'/public/wp-cli.php');
@@ -277,8 +279,41 @@ class WP_Analytics {
 
 	private function set_ids($url, $content_id, $content_type = 'post', $content_kind = 'post') {
 		global $wpdb;
+		logr("set_ids($url, $content_id, $content_type");
 		$wpdb->query("UPDATE {$this->table_name} SET content_id = {$content_id}, content_type = '{$content_type}', content_kind = '{$content_kind}' WHERE url = '{$url}' ");
 	}
+
+	public function set_missing_url_ids(){
+
+		if ( $_POST['action'] == 'wp_analytics_missing_url' ):
+			$url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+			if ( is_singular() ):
+				$this->set_ids($url, get_the_ID(), get_queried_object()->post_type );
+				exit();
+			endif;
+
+			if ( is_tax() ):
+				$this->set_ids($url, get_queried_object()->term_id, get_queried_object()->taxonomy, 'term' );
+				exit();
+			endif;
+
+			if ( is_date() ):
+				$this->set_ids($url, preg_replace("#[^\d]#", '', $url), 'date', 'archive' );
+				exit();
+			endif;
+
+			if ( is_home() or is_front_page() ):
+				$this->set_ids($url, 0, 'page', 'post' );
+				exit();
+			endif;
+
+			logr("wp_analytics_missing_url($url : NOT FOUND");
+
+			exit();
+		endif;
+	}
+
 
 	private function get_service() {
 
@@ -355,10 +390,17 @@ class WP_Analytics {
 	public function gets($period, $post_id, $content_kind = 'post', $content_type = 'post'){
 		global $wpdb;
 
+		logr("gets($period, $post_id, $content_kind, $content_type");
+
 		$period = $this->get_period($period);
+
 		logr($period);
 
-		$sql = "SELECT `period`, `count_value` FROM {$this->table_name} WHERE `content_id` = {$post_id} AND `period` RLIKE '{$period}' ";
+		$period_regex = $period['pattern'];
+
+		$sql = "SELECT `period`, `count_value` FROM {$this->table_name} WHERE `content_id` = {$post_id} AND `period` RLIKE '{$period_regex}' ";
+
+		logr($sql);
 
 		$values = $wpdb->get_results($sql);
 
@@ -640,9 +682,9 @@ class WP_Analytics {
 		$sql = "
 		CREATE TABLE `{$this->table_name}` (
 			`url` varchar(255) NOT NULL,
-			`content_kind` int(11) DEFAULT NULL,
 			`content_id` int(11) DEFAULT NULL,
-			`content_type` int(11) DEFAULT NULL,
+			`content_type` varchar(32) DEFAULT NULL,
+			`content_kind` varchar(32) DEFAULT NULL,
 			`period` varchar(32) NOT NULL,
 			`count_value` int(11) NOT NULL DEFAULT '0',
 			PRIMARY KEY (`url`,`period`)

@@ -275,6 +275,26 @@ class WP_Analytics_Admin {
 		}
 	}
 
+
+	public function admin_footer_set_missing_ids(){
+		global $wpdb;
+
+		$plugin = WP_Analytics::get_instance();
+
+		$missing_urls = $wpdb->get_col("SELECT DISTINCT url FROM {$plugin->table_name} WHERE content_id IS NULL AND content_type IS NULL AND content_kind IS NULL ORDER BY RAND() LIMIT 0, 5");
+		?>
+		<script>
+			var missing_urls = <?php print json_encode($missing_urls) ?>;
+			jQuery.each(missing_urls, function(idx, url){
+				jQuery.post(url,{
+					action: 'wp_analytics_missing_url'
+				});
+			});
+		</script>
+		<?php
+	}
+
+
 	public function render_meta_box_content( $post ) {
 
 		include(constant('WP_Analytics_DIR').'/admin/views/meta_box.php');

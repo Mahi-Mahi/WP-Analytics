@@ -10,11 +10,10 @@
 
 		<p>
 			<?php
-			$values = wp_analytics_gets($_GET['post']);
-			xmpr($values);
+			$values = wp_analytics_gets('day', $_GET['post']);
 			$json_values = array(array('Date', 'PageViews'));
 			foreach($values as $row):
-				$json_values[] = array($row->period, $row->count_value);
+				$json_values[] = array($row->period, (int)$row->count_value);
 			endforeach;
 			?>
 
@@ -34,7 +33,7 @@
 						['2007',  1030]
 					]
 					*/
-					var data = google.visualization.arrayToDataTable(<?php print json_encode($json_values));
+					var data = google.visualization.arrayToDataTable(<?php print json_encode($json_values) ?>);
 
 					var chart = new google.visualization.LineChart(document.getElementById('wp_analytics_chart_div'));
 					chart.draw(data, {
