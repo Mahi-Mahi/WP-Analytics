@@ -679,8 +679,10 @@ class WP_Analytics {
 		// @TODO: Define activation functionality here
 		global $wpdb;
 
+		$table_name = $wpdb->prefix.'analytics';
+
 		$sql = "
-		CREATE TABLE `{$this->table_name}` (
+		CREATE TABLE `{$table_name}` (
 			`url` varchar(255) NOT NULL,
 			`content_id` int(11) DEFAULT NULL,
 			`content_type` varchar(32) DEFAULT NULL,
