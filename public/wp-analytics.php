@@ -117,6 +117,9 @@ class WP_Analytics {
 
 		add_action( 'wp_head', array( $this, 'set_missing_url_ids' ), 1 );
 
+		add_action( 'wp_ajax_wp_analytics_fetch_top', array( $this, 'fetch_top' ) );
+
+
 		if ( defined('WP_CLI') && WP_CLI )
 			require_once(constant('WP_Analytics_DIR').'/public/wp-cli.php');
 

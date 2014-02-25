@@ -19,4 +19,14 @@
 
 	<!-- @TODO: Provide markup for your options page here. -->
 
+	<button id="fetch_top">Fetch Top</button>
+
+	<script>
+	jQuery('#fetch_top').on('click', function(){
+		jQuery.post(ajaxurl, {
+			action: 'wp_analytics_fetch_top'
+		});
+	});
+	</script>
+
 </div>
