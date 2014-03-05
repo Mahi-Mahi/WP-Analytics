@@ -279,9 +279,14 @@ class WP_Analytics_Admin {
 	public function admin_footer_set_missing_ids(){
 		global $wpdb;
 
+		if ( defined('WP_ANALYTICS_DISABLE_MISSING_URLS') )
+			return;
+
 		$plugin = WP_Analytics::get_instance();
 
-		$missing_urls = $wpdb->get_col("SELECT DISTINCT url FROM {$plugin->table_name} WHERE content_id IS NULL AND content_type IS NULL AND content_kind IS NULL ORDER BY RAND() LIMIT 0, 5");
+		$nb_urls = defined('WP_ANALYTICS_NB_MISSING_URLS') ? constant('WP_ANALYTICS_NB_MISSING_URLS') : 5;
+
+		$missing_urls = $wpdb->get_col("SELECT DISTINCT url FROM {$plugin->table_name} WHERE content_id IS NULL AND content_type IS NULL AND content_kind IS NULL ORDER BY RAND() LIMIT 0, ".$nb_urls);
 		?>
 		<script>
 			var missing_urls = <?php print json_encode($missing_urls) ?>;
